@@ -1,0 +1,107 @@
+---
+title: "Gaussian Mixture Model & EM"
+subtitle: "WP8"
+author: "Marc Florian"
+date: "`r format(Sys.time())`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: cerulean
+    highlight: espresso
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Libraries included
+```{r message=FALSE}
+library(knitr)
+library(mclust)
+library(NMF) #for purity testing on clusters
+```
+
+##Seed
+```{r}
+set.seed(702828)
+```
+
+
+#EM using ```mclust```
+##EM vs. _$k$_-means
+__1.__ First, we'll import the data
+```{r}
+data1 <- read.csv("data1.csv", sep = ",", header = TRUE)
+data2 <- read.csv("data2.csv", sep = ",", header = TRUE)
+```
+Let's plot all of this.
+
+```{r}
+par(mfrow = c(1, 2))
+plot(data1$X1, data1$X2, col=c("red", "green", "blue", "purple")[data1$truth], xlab = "X1", ylab = "X2", main = "data1")
+plot(data2$X1, data2$X2, col=c("red", "green", "blue", "purple")[data2$truth], xlab = "X1", ylab = "X2", main = "data2")
+```
+
+__2.__ Now let's apply a k-means clustering on both datasets. There will be 4 clusters on each and twenty iterations on the k-means algorithm _top_.
+```{r}
+km.data1 = kmeans(data1[,1:2], 4, iter.max = 20)
+km.data2 = kmeans(data2[,1:2], 4, iter.max = 20)
+```
+
+We can plot the dataset again with colors according to the k-means clusters.
+```{r}
+par(mfrow = c(1, 2))
+plot(data1$X1, data1$X2, col=c("red", "green", "blue", "purple")[km.data1$cluster], xlab = "X1", ylab = "X2", main = "k-means clusters for data1")
+plot(data2$X1, data2$X2, col=c("red", "green", "blue", "purple")[km.data2$cluster], xlab = "X1", ylab = "X2", main = "k-means clusters for data2")
+```
+
+
+Because the k-means is based on distance from a center, it shows fair results with dense "circled-shaped" data clusters. Therefore, the clustering method show poor results on the second dataset.
+
+__3.__ We'll be fitting a GMM (Gaussian Mixture Model) on the datasets with the ```mclust``` library. To begin with, we should compute the _Bayesian Information Criterion_ (BIC).
+```{r}
+BIC.data1 <- mclustBIC(data1[,1:2])
+BIC.data2 <- mclustBIC(data2[,1:2])
+GMM.data1 <- Mclust(data1[,1:2], x = BIC.data1)
+GMM.data2 <- Mclust(data2[,1:2], x = BIC.data2)
+```
+Now for the plot:
+```{r}
+par(mfrow = c(1, 2))
+plot(data1$X1, data1$X2, col=c("red", "green", "blue", "purple")[GMM.data1$classification], xlab = "X1", ylab = "X2", main = "GMM clusters for data1")
+plot(data2$X1, data2$X2, col=c("red", "green", "blue", "purple")[GMM.data2$classification], xlab = "X1", ylab = "X2", main = "GMM clusters for data2")
+```
+GMM clustering shows great performances on both datasets. With the neaked eye, it even seems that there's only one data point of difference between GMM and the acual data!
+```{r}
+par(mfrow = c(1, 2))
+plot(data2$X1, data2$X2, col=c("red", "green", "blue", "purple")[GMM.data2$classification], xlab = "X1", ylab = "X2", main = "GMM clusters for data2")
+plot(data2$X1, data2$X2, col=c("red", "green", "blue", "purple")[data2$truth], xlab = "X1", ylab = "X2", main = "GMM clusters for data2")
+```
+
+
+__4.__ Let's take a look at the summary of the GMM fitted for ```data2```
+```{r}
+summary(GMM.data2)
+```
+__5.__ Following is a series of plots obtained from the GMM :
+
+* This plot shows how the data was classified by the GMM.
+```{r}
+plot(GMM.data2, what = "classification")
+```
+
+* This plot shows the uncertainty computed for each point. The bigger the point, the bigger the uncertainty it actually belongs to the class.
+```{r}
+plot(GMM.data2, what = "uncertainty") 
+```
+
+__6.__ Let's take a look at the BIC value for different values of mixtures
+```{r}
+plot(GMM.data2, what = "BIC")
+```
+
+
+
+
